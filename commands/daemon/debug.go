@@ -30,21 +30,34 @@ type DebugService struct{}
 // Debug target. The first message passed through the `StreamingOpenReq` must
 // contain Debug configuration params, not data.
 func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error {
-	// grab the first message
-	msg, err := stream.Recv()
-	if err != nil {
-		return err
-	}
-
-	// ensure it's a config message and not data
-	config := msg.GetDebugConfig()
-	if config == nil {
-		return fmt.Errorf("first message must contain Debug configuration, not data")
-	}
+	//// grab the first message
+	//msg, err := stream.Recv()
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//// ensure it's a config message and not data
+	//config := msg.GetDebugConfig()
+	//if config == nil {
+	//	return fmt.Errorf("first message must contain Debug configuration, not data")
+	//}
 	// compile the sketch
 	// resolve and start debugger and attach i/o to it
-	cmd := exec.Command("gdb")
-	//cmd.Stderr = os.Stderr
+	cmd := exec.Command("bc")
+	in, err := cmd.StdinPipe()
+	if err != nil {
+		return (err)
+	}
+
+	//defer in.Close()
+
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		return (err)
+	}
+
+	//defer out.Close()
+
 	err = cmd.Run()
 	if err != nil {
 		fmt.Printf("%v\n", err)
@@ -72,7 +85,7 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 				break
 			}
 
-			if _, err := cmd.Stdin.Read(command.GetData()); err != nil {
+			if _, err := in.Write(command.GetData()); err != nil {
 				// error writing to target
 				targetClosed <- err
 				break
@@ -84,7 +97,7 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 	go func() {
 		buf := make([]byte, 8)
 		for {
-			n, err := cmd.Stdout.Write(buf)
+			n, err := out.Read(buf)
 			if err != nil {
 				// error reading from target
 				targetClosed <- err
