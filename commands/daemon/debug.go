@@ -51,23 +51,19 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 	if err != nil {
 		return (err)
 	}
-
 	defer in.Close()
 
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return (err)
 	}
-
 	defer out.Close()
-	fmt.Println("before run")
 
 	err = cmd.Start()
 	if err != nil {
 		fmt.Println("%v\n", err)
 		return err
 	}
-	fmt.Println("launched!")
 
 	// we'll use these channels to communicate with the goroutines
 	// handling the stream and the target respectively
@@ -104,7 +100,6 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 		buf := make([]byte, 8)
 		for {
 			n, err := out.Read(buf)
-			fmt.Println("out.Read(buf)")
 			if err != nil {
 				// error reading from target
 				targetClosed <- err
@@ -120,7 +115,6 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 			err = stream.Send(&rpc.StreamingOpenResp{
 				Data: buf[:n],
 			})
-			fmt.Println("stream send")
 			if err != nil {
 				// error sending to stream
 				streamClosed <- err
@@ -135,9 +129,12 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 	for {
 		select {
 		case err := <-streamClosed:
-			//deb.Close()
+			fmt.Println("streamClosed")
+			cmd.Process.Kill()
+			cmd.Wait()
 			return err
 		case err := <-targetClosed:
+			fmt.Println("targetClosed")
 			return err
 		}
 	}

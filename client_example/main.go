@@ -17,6 +17,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	rpc "github.com/arduino/arduino-cli/rpc/commands"
 	"io"
 	"io/ioutil"
@@ -70,9 +71,8 @@ func main() {
 
 	// debug calls
 	debugStreamingOpenClient, err := debugClient.StreamingOpen(context.Background())
-	log.Print("StreamingOpen")
 	if err != nil {
-		log.Fatalf("steraming open error error: %s\n", err)
+		log.Fatalf("steraming open  error: %s\n", err)
 	}
 
 	err = debugStreamingOpenClient.Send(&debug.StreamingOpenReq{Data: []byte("\n")})
@@ -80,7 +80,6 @@ func main() {
 		log.Fatalf("Send error: %s\n", err)
 	}
 
-	log.Print("Before loop")
 	// Loop and consume the server stream until all the operations are done.
 	for {
 		compResp, err := debugStreamingOpenClient.Recv()
@@ -98,7 +97,7 @@ func main() {
 
 		// When an operation is ongoing you can get its output
 		if resp := compResp.GetData(); resp != nil {
-			log.Printf("STDOUT:%s", resp)
+			fmt.Printf("%s", resp)
 			if string(resp) == " (gdb) " {
 				break
 			}
@@ -107,6 +106,14 @@ func main() {
 	}
 
 	err = debugStreamingOpenClient.Send(&debug.StreamingOpenReq{Data: []byte("quit\n")})
+	if err != nil {
+		log.Fatalf("Send error: %s\n", err)
+	}
+
+	err = debugStreamingOpenClient.CloseSend()
+	if err != nil {
+		log.Fatalf("Send error: %s\n", err)
+	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 
