@@ -31,16 +31,8 @@ service Debug {
 // All subsequent messages must contain bytes to be sent to the debug session
 // and must not contain a `session_config` message.
 message StreamingOpenReq {
-    // Content must be either a debug session config or data to be sent.
-    oneof content {
-        // Provides information to the debug that specifies which is the target.
-        // The first `StreamingOpenReq` message must contain a `debug_config`
-        // message.
-        DebugConfig debugConfig = 1;
 
-        // The data to be sent to the target being monitored.
-        bytes data = 2;
-    }
+    bytes data = 1;
 }
 
 // Tells the session which target to open and provides additional parameters
@@ -55,4 +47,6 @@ message StreamingOpenResp {
 }
 
 // TODO duplicated from rpc/commands/common.proto
-message Instance { int32 id = 1; }
+message Instance {
+    int32 id = 1;
+}

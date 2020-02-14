@@ -43,26 +43,37 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 	//}
 	// compile the sketch
 	// resolve and start debugger and attach i/o to it
+
+	fmt.Println("streaming open")
+
+	msg, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+	fmt.Println("streceived first message: %s", string(msg.GetData()))
+
 	cmd := exec.Command("bc")
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		return (err)
 	}
 
-	//defer in.Close()
+	defer in.Close()
 
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return (err)
 	}
 
-	//defer out.Close()
+	defer out.Close()
+	fmt.Println("before run")
 
-	err = cmd.Run()
+	err = cmd.Start()
 	if err != nil {
-		fmt.Printf("%v\n", err)
+		fmt.Println("%v\n", err)
 		return err
 	}
+	fmt.Println("bc launched!")
 
 	// we'll use these channels to communicate with the goroutines
 	// handling the stream and the target respectively
@@ -88,6 +99,7 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 			if _, err := in.Write(command.GetData()); err != nil {
 				// error writing to target
 				targetClosed <- err
+				fmt.Println("in.Write(command.GetData())")
 				break
 			}
 		}
@@ -98,6 +110,7 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 		buf := make([]byte, 8)
 		for {
 			n, err := out.Read(buf)
+			fmt.Println("out.Read(buf)")
 			if err != nil {
 				// error reading from target
 				targetClosed <- err
@@ -110,9 +123,11 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 				break
 			}
 
-			if err = stream.Send(&rpc.StreamingOpenResp{
+			err = stream.Send(&rpc.StreamingOpenResp{
 				Data: buf[:n],
-			}); err != nil {
+			})
+			fmt.Println("stream send")
+			if err != nil {
 				// error sending to stream
 				streamClosed <- err
 				break
