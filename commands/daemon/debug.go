@@ -16,11 +16,13 @@
 package daemon
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"github.com/arduino/arduino-cli/commands/compile"
+	"github.com/arduino/arduino-cli/rpc/commands"
 	"io"
 	"os/exec"
-
-	rpc "github.com/arduino/arduino-cli/rpc/debug"
 )
 
 // DebugService implements the `Debug` service
@@ -29,23 +31,30 @@ type DebugService struct{}
 // StreamingOpen returns a stream response that can be used to fetch data from the
 // Debug target. The first message passed through the `StreamingOpenReq` must
 // contain Debug configuration params, not data.
-func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error {
-	//// grab the first message
-	//msg, err := stream.Recv()
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//// ensure it's a config message and not data
-	//config := msg.GetDebugConfig()
-	//if config == nil {
-	//	return fmt.Errorf("first message must contain Debug configuration, not data")
-	//}
+func (s *DebugService) StreamingOpen(stream commands.Debug_StreamingOpenServer) error {
+	// grab the first message
+	msg, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+
+	// ensure it's a config message and not data
+	compileReq := msg.GetCompileReq()
+	if compileReq == nil {
+		return fmt.Errorf("first message must contain a CompileReq, not data")
+	}
 	// compile the sketch
-	// resolve and start debugger and attach i/o to it
-
-	fmt.Println("streaming open")
-
+	var compileOut bytes.Buffer
+	compileOutBuf := bufio.NewWriter(&compileOut)
+	var compileErr bytes.Buffer
+	compileErrBuf := bufio.NewWriter(&compileErr)
+	_, err = compile.Compile(stream.Context(), compileReq, compileOutBuf, compileErrBuf, false)
+	if err != nil {
+		return (err)
+	}
+	// re-hydrate debug recipe using compile params to identify the recipe
+	getDebugCommand(compileReq)
+	// launch debug recipe attaching stdin and out to grpc streaming
 	cmd := exec.Command("gdb")
 	in, err := cmd.StdinPipe()
 	if err != nil {
@@ -112,7 +121,7 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 				break
 			}
 
-			err = stream.Send(&rpc.StreamingOpenResp{
+			err = stream.Send(&commands.StreamingOpenResp{
 				Data: buf[:n],
 			})
 			if err != nil {
@@ -138,4 +147,8 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 			return err
 		}
 	}
+}
+
+func getDebugCommand(req *commands.CompileReq) {
+
 }

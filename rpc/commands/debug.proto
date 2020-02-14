@@ -15,9 +15,14 @@
 
 syntax = "proto3";
 
-package cc.arduino.cli.debug;
+package cc.arduino.cli.commands;
 
-option go_package = "github.com/arduino/arduino-cli/rpc/debug";
+option go_package = "github.com/arduino/arduino-cli/rpc/commands";
+
+// this is why this module is inside "commands":
+// I cannot use the CompileReq and Init messages if I create a special "debug package"
+import "commands/common.proto";
+import "commands/compile.proto";
 
 // Service that abstract a debug Session usage
 service Debug {
@@ -31,22 +36,22 @@ service Debug {
 // All subsequent messages must contain bytes to be sent to the debug session
 // and must not contain a `session_config` message.
 message StreamingOpenReq {
+    // Content must be either a debug session config or data to be sent.
+    oneof content {
+        // Provides information to the debug that specifies which is the target.
+        // The first `StreamingOpenReq` message must contain a `debug_config`
+        // message.
+        CompileReq compileReq = 1;
 
-    bytes data = 1;
+        // The data to be sent to the target being monitored.
+        bytes data = 2;
+    }
 }
 
-// Tells the session which target to open and provides additional parameters
-// that might be needed to configure the target or the monitor itself.
-message DebugConfig {
-    Instance instance = 1;
-}
+
 
 //
 message StreamingOpenResp {
     bytes data = 1;
 }
 
-// TODO duplicated from rpc/commands/common.proto
-message Instance {
-    int32 id = 1;
-}

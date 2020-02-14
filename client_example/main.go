@@ -27,8 +27,6 @@ import (
 	"path/filepath"
 	"time"
 
-	//rpc "github.com/arduino/arduino-cli/rpc/commands"
-	"github.com/arduino/arduino-cli/rpc/debug"
 	//"github.com/arduino/arduino-cli/rpc/settings"
 	"google.golang.org/grpc"
 )
@@ -63,7 +61,7 @@ func main() {
 	client := rpc.NewArduinoCoreClient(conn)
 	//settingsClient := settings.NewSettingsClient(conn)
 	/////////////////////////////////////////////////////////////////////////
-	debugClient := debug.NewDebugClient(conn)
+	debugClient := rpc.NewDebugClient(conn)
 
 	// `Version` can be called without any setup or init procedure.
 	log.Println("calling Version")
@@ -75,7 +73,7 @@ func main() {
 		log.Fatalf("steraming open  error: %s\n", err)
 	}
 
-	err = debugStreamingOpenClient.Send(&debug.StreamingOpenReq{Data: []byte("\n")})
+	err = debugStreamingOpenClient.Send(&rpc.StreamingOpenReq{Data: []byte("\n")})
 	if err != nil {
 		log.Fatalf("Send error: %s\n", err)
 	}
@@ -105,7 +103,7 @@ func main() {
 
 	}
 
-	err = debugStreamingOpenClient.Send(&debug.StreamingOpenReq{Data: []byte("quit\n")})
+	err = debugStreamingOpenClient.Send(&rpc.StreamingOpenReq{Data: []byte("quit\n")})
 	if err != nil {
 		log.Fatalf("Send error: %s\n", err)
 	}
