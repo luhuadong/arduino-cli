@@ -18,8 +18,8 @@ package daemon
 import (
 	"fmt"
 	"io"
+	"os/exec"
 
-	"github.com/arduino/arduino-cli/arduino/debuggers"
 	rpc "github.com/arduino/arduino-cli/rpc/debug"
 )
 
@@ -41,10 +41,13 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 	if config == nil {
 		return fmt.Errorf("first message must contain Debug configuration, not data")
 	}
-
-	// get the Debug instance
-	deb, err := debuggers.OpenDebugger()
+	// compile the sketch
+	// resolve and start debugger and attach i/o to it
+	cmd := exec.Command("gdb")
+	//cmd.Stderr = os.Stderr
+	err = cmd.Run()
 	if err != nil {
+		fmt.Printf("%v\n", err)
 		return err
 	}
 
@@ -69,7 +72,7 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 				break
 			}
 
-			if _, err := deb.Write(command.GetData()); err != nil {
+			if _, err := cmd.Stdin.Read(command.GetData()); err != nil {
 				// error writing to target
 				targetClosed <- err
 				break
@@ -81,7 +84,7 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 	go func() {
 		buf := make([]byte, 8)
 		for {
-			n, err := deb.Read(buf)
+			n, err := cmd.Stdout.Write(buf)
 			if err != nil {
 				// error reading from target
 				targetClosed <- err
@@ -110,7 +113,7 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 	for {
 		select {
 		case err := <-streamClosed:
-			deb.Close()
+			//deb.Close()
 			return err
 		case err := <-targetClosed:
 			return err
