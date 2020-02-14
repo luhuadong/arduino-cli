@@ -75,12 +75,7 @@ func main() {
 		log.Fatalf("steraming open error error: %s\n", err)
 	}
 
-	err = debugStreamingOpenClient.Send(&debug.StreamingOpenReq{Data: []byte("help\nhelp\nhelp\nhelp\nhelp\nhelp\nhelp\nhelp\nhelp\nhelp\n")})
-	if err != nil {
-		log.Fatalf("Send error: %s\n", err)
-	}
-
-	err = debugStreamingOpenClient.Send(&debug.StreamingOpenReq{Data: []byte("test\ntest\n")})
+	err = debugStreamingOpenClient.Send(&debug.StreamingOpenReq{Data: []byte("\n")})
 	if err != nil {
 		log.Fatalf("Send error: %s\n", err)
 	}
@@ -103,10 +98,16 @@ func main() {
 
 		// When an operation is ongoing you can get its output
 		if resp := compResp.GetData(); resp != nil {
-			log.Printf("STDOUT: %s", resp)
+			log.Printf("STDOUT:%s", resp)
+			if string(resp) == " (gdb) " {
+				break
+			}
 		}
 
 	}
+
+	err = debugStreamingOpenClient.Send(&debug.StreamingOpenReq{Data: []byte("quit\n")})
+
 	////////////////////////////////////////////////////////////////////////////////////////////
 
 	//// Now we can call various methods of the API...

@@ -46,13 +46,7 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 
 	fmt.Println("streaming open")
 
-	msg, err := stream.Recv()
-	if err != nil {
-		return err
-	}
-	fmt.Println("streceived first message: %s", string(msg.GetData()))
-
-	cmd := exec.Command("bc")
+	cmd := exec.Command("gdb")
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		return (err)
@@ -73,7 +67,7 @@ func (s *DebugService) StreamingOpen(stream rpc.Debug_StreamingOpenServer) error
 		fmt.Println("%v\n", err)
 		return err
 	}
-	fmt.Println("bc launched!")
+	fmt.Println("launched!")
 
 	// we'll use these channels to communicate with the goroutines
 	// handling the stream and the target respectively
